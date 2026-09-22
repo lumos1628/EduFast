@@ -1,0 +1,1 @@
+# Reglas de ProGuard/R8 para release. Vacío por ahora (app en esqueleto).

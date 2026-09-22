@@ -1,0 +1,25 @@
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Backend (Java/Gradle)
+backend/build/
+backend/.gradle/
+
+# Web (Node)
+web/node_modules/
+web/dist/
+
+# Mobile (Android)
+mobile/build/
+mobile/app/build/
+mobile/local.properties
+mobile/.gradle/
+
+# Sistema
+.DS_Store
+*.log
+
+# Encuestas con datos personales de docentes (evidencia de investigación, no va al repo)
+*.xlsx
