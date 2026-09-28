@@ -152,16 +152,10 @@ Para aplicar migraciones al proyecto Supabase compartido de desarrollo, autentí
 npx supabase@latest login
 npx supabase@latest link --project-ref <DEV_PROJECT_REF>
 npx supabase@latest db push --dry-run
-npx supabase@latest db push
+npx supabase@latest db push --include-seed
 ```
 
-`db push` aplica las migraciones; la semilla se ejecuta aparte y solo en desarrollo. Copia la URI PostgreSQL desde Supabase → **Database → Connect** y ejecútala una vez:
-
-```bash
-psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/seed.sql
-```
-
-La semilla crea datos sintéticos: 22 secciones, 396 estudiantes y cuentas demo. Es idempotente para permitir reinicializar el entorno de desarrollo. No ejecutes la semilla en producción ni guardes contraseñas o claves en Git. El backend se conecta a PostgreSQL con credenciales privadas; web y Android solo llaman a la API Spring. RLS y los permisos bloquean el acceso directo de clientes Supabase (`anon`/`authenticated`), no el acceso autorizado del backend.
+`db push` aplica las migraciones; `--include-seed` también carga los datos sintéticos configurados en `supabase/config.toml`. Usa esa opción solo en desarrollo. Sin ella, el comando aplica únicamente el esquema. La semilla crea 22 secciones, 396 estudiantes y cuentas demo; es idempotente para permitir reinicializar el entorno. No cargues la semilla en producción ni guardes contraseñas o claves en Git. El backend se conecta a PostgreSQL con credenciales privadas; web y Android solo llaman a la API Spring. RLS y los permisos bloquean el acceso directo de clientes Supabase (`anon`/`authenticated`), no el acceso autorizado del backend.
 
 ### Variables de entorno del backend actual
 El prototipo funciona con la base local por defecto. En producción, define:
