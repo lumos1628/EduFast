@@ -8,7 +8,8 @@ import java.time.LocalDate;
 import java.util.List;
 
 public interface AttendanceService {
-    List<AttendanceResponse> takeAttendance(User user, Long courseId, AttendanceRequest request);
 
-    List<AttendanceResponse> getAttendance(User user, Long courseId, LocalDate date);
+    List<AttendanceResponse> takeAttendance(User user, Long sectionId, AttendanceRequest request);
+
+    List<AttendanceResponse> getAttendance(User user, Long sectionId, LocalDate date);
 }

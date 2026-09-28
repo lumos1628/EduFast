@@ -3,39 +3,26 @@ package com.edufast.domain.model;
 import java.time.LocalDate;
 
 /**
- * Modelo de dominio PURO: sin anotaciones de frameworks.
- * Registro de asistencia de un alumno en un curso y fecha.
+ * Modelo de dominio PURO: estado de asistencia de un alumno en una fecha.
  */
 public class Attendance {
 
-    private final Long id;
-    private final Course course;
+    private final Long studentId;
     private final LocalDate date;
-    private final Student student;
     private boolean present;
 
-    public Attendance(Long id, Course course, LocalDate date, Student student, boolean present) {
-        this.id = id;
-        this.course = course;
+    public Attendance(Long studentId, LocalDate date, boolean present) {
+        this.studentId = studentId;
         this.date = date;
-        this.student = student;
         this.present = present;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public Course getCourse() {
-        return course;
+    public Long getStudentId() {
+        return studentId;
     }
 
     public LocalDate getDate() {
         return date;
-    }
-
-    public Student getStudent() {
-        return student;
     }
 
     public boolean isPresent() {

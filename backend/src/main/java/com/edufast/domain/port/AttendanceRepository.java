@@ -1,19 +1,19 @@
 package com.edufast.domain.port;
 
-import com.edufast.domain.model.Attendance;
+import com.edufast.domain.model.Jornada;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
 
 /**
- * PUERTO: el contrato que el dominio necesita para persistir asistencias.
+ * PUERTO: el contrato que el negocio necesita para persistir asistencia.
  */
 public interface AttendanceRepository {
 
-    List<Attendance> findByCourseIdAndDate(Long courseId, LocalDate date);
+    Optional<Jornada> findBySectionAndDate(Long sectionId, LocalDate date);
 
-    Optional<Attendance> findByCourseIdAndStudentIdAndDate(Long courseId, Long studentId, LocalDate date);
-
-    List<Attendance> saveAll(List<Attendance> attendances);
+    /**
+     * Guarda la jornada (cabecera) y sus registros de asistencia.
+     */
+    Jornada save(Jornada jornada, Long registeredBy, boolean confirm);
 }

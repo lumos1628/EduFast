@@ -2,13 +2,12 @@ package com.edufast.application.service;
 
 import com.edufast.application.dto.AttendanceRequest;
 import com.edufast.application.dto.AttendanceResponse;
-import com.edufast.domain.exception.NotFoundException;
 import com.edufast.domain.model.Attendance;
-import com.edufast.domain.model.Course;
+import com.edufast.domain.model.Jornada;
+import com.edufast.domain.model.Section;
 import com.edufast.domain.model.Student;
 import com.edufast.domain.model.User;
 import com.edufast.domain.port.AttendanceRepository;
-import com.edufast.domain.port.EnrollmentRepository;
 import com.edufast.domain.port.StudentRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,61 +21,53 @@ import java.util.Map;
 @Service
 public class AttendanceServiceImpl implements AttendanceService {
 
-    private final CourseService courseService;
+    private final SectionService sectionService;
     private final AttendanceRepository attendanceRepository;
     private final StudentRepository studentRepository;
-    private final EnrollmentRepository enrollmentRepository;
 
-    public AttendanceServiceImpl(CourseService courseService,
+    public AttendanceServiceImpl(SectionService sectionService,
                                  AttendanceRepository attendanceRepository,
-                                 StudentRepository studentRepository,
-                                 EnrollmentRepository enrollmentRepository) {
-        this.courseService = courseService;
+                                 StudentRepository studentRepository) {
+        this.sectionService = sectionService;
         this.attendanceRepository = attendanceRepository;
         this.studentRepository = studentRepository;
-        this.enrollmentRepository = enrollmentRepository;
     }
 
     @Override
     @Transactional
-    public List<AttendanceResponse> takeAttendance(User user, Long courseId, AttendanceRequest request) {
-        Course course = courseService.getOwnedCourse(user, courseId);
-        List<Attendance> toSave = new ArrayList<>();
+    public List<AttendanceResponse> takeAttendance(User user, Long sectionId, AttendanceRequest request) {
+        Section section = sectionService.getAssignedSection(user, sectionId);
 
-        for (AttendanceRequest.AttendanceEntry entry : deduplicate(request.attendance())) {
-            Student student = studentRepository.findById(entry.studentId())
-                    .orElseThrow(() -> new NotFoundException("Alumno no encontrado"));
+        List<Attendance> registros = deduplicate(request.attendance()).stream()
+                .map(entry -> new Attendance(entry.studentId(), request.date(), entry.present()))
+                .toList();
 
-            if (!enrollmentRepository.existsByCourseIdAndStudentId(courseId, student.getId())) {
-                throw new NotFoundException("El alumno no está matriculado en este curso");
-            }
+        Jornada jornada = new Jornada(null, section.getId(), request.date(), "CONFIRMADA", registros);
+        Jornada saved = attendanceRepository.save(jornada, user.getId(), true);
 
-            Attendance attendance = attendanceRepository
-                    .findByCourseIdAndStudentIdAndDate(courseId, student.getId(), request.date())
-                    .orElseGet(() -> new Attendance(null, course, request.date(), student, entry.present()));
-
-            attendance.setPresent(entry.present());
-            toSave.add(attendance);
-        }
-
-        return attendanceRepository.saveAll(toSave).stream()
-                .map(AttendanceResponse::from)
+        return saved.getRegistros().stream()
+                .map(a -> toResponse(a, request.date()))
                 .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<AttendanceResponse> getAttendance(User user, Long courseId, LocalDate date) {
-        courseService.getOwnedCourse(user, courseId);
-        return attendanceRepository.findByCourseIdAndDate(courseId, date).stream()
-                .map(AttendanceResponse::from)
-                .toList();
+    public List<AttendanceResponse> getAttendance(User user, Long sectionId, LocalDate date) {
+        sectionService.getAssignedSection(user, sectionId);
+        return attendanceRepository.findBySectionAndDate(sectionId, date)
+                .map(jornada -> jornada.getRegistros().stream()
+                        .map(a -> toResponse(a, date))
+                        .toList())
+                .orElse(List.of());
     }
 
-    /**
-     * Si el request trae el mismo alumno dos veces, gana la última entrada.
-     * Evita violar el constraint único (curso + fecha + alumno) de la base de datos.
-     */
+    private AttendanceResponse toResponse(Attendance asistencia, LocalDate date) {
+        String studentName = studentRepository.findById(asistencia.getStudentId())
+                .map(Student::getName)
+                .orElse("Alumno");
+        return new AttendanceResponse(asistencia.getStudentId(), studentName, date, asistencia.isPresent());
+    }
+
     private List<AttendanceRequest.AttendanceEntry> deduplicate(List<AttendanceRequest.AttendanceEntry> entries) {
         Map<Long, AttendanceRequest.AttendanceEntry> byStudent = new LinkedHashMap<>();
         for (AttendanceRequest.AttendanceEntry entry : entries) {

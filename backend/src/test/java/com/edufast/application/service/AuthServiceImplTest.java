@@ -41,7 +41,7 @@ class AuthServiceImplTest {
 
     @Test
     void loginConCredencialesValidasDevuelveToken() {
-        User user = new User(1L, "Profesor Demo", "profesor@edufast.com", "hash", Role.PROFESSOR);
+        User user = new User(1L, "Profesor Demo", "profesor@edufast.com", "hash", Role.DOCENTE);
         when(userRepository.findByEmail("profesor@edufast.com")).thenReturn(Optional.of(user));
         when(passwordHasher.matches("123456", "hash")).thenReturn(true);
         when(tokenProvider.generateToken(user)).thenReturn("token-de-prueba");
@@ -51,12 +51,12 @@ class AuthServiceImplTest {
 
         assertEquals("token-de-prueba", response.token());
         assertEquals("Profesor Demo", response.name());
-        assertEquals("PROFESSOR", response.role());
+        assertEquals("DOCENTE", response.role());
     }
 
     @Test
     void loginConPasswordIncorrectoLanzaExcepcion() {
-        User user = new User(1L, "Profesor Demo", "profesor@edufast.com", "hash", Role.PROFESSOR);
+        User user = new User(1L, "Profesor Demo", "profesor@edufast.com", "hash", Role.DOCENTE);
         when(userRepository.findByEmail("profesor@edufast.com")).thenReturn(Optional.of(user));
         when(passwordHasher.matches("password-incorrecta", "hash")).thenReturn(false);
 

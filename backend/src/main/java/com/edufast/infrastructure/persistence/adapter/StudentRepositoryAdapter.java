@@ -3,7 +3,8 @@ package com.edufast.infrastructure.persistence.adapter;
 import com.edufast.domain.model.Student;
 import com.edufast.domain.port.StudentRepository;
 import com.edufast.infrastructure.persistence.mapper.StudentMapper;
-import com.edufast.infrastructure.persistence.repository.SpringDataStudentRepository;
+import com.edufast.infrastructure.persistence.repository.SpringDataEstudianteRepository;
+import com.edufast.infrastructure.persistence.repository.SpringDataUbicacionMatriculaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -15,22 +16,29 @@ import java.util.Optional;
 @Repository
 public class StudentRepositoryAdapter implements StudentRepository {
 
-    private final SpringDataStudentRepository jpa;
+    private final SpringDataEstudianteRepository estudiantes;
+    private final SpringDataUbicacionMatriculaRepository ubicaciones;
 
-    public StudentRepositoryAdapter(SpringDataStudentRepository jpa) {
-        this.jpa = jpa;
+    public StudentRepositoryAdapter(SpringDataEstudianteRepository estudiantes,
+                                    SpringDataUbicacionMatriculaRepository ubicaciones) {
+        this.estudiantes = estudiantes;
+        this.ubicaciones = ubicaciones;
     }
 
     @Override
     public Optional<Student> findById(Long id) {
-        return jpa.findById(id).map(StudentMapper::toDomain);
+        return estudiantes.findWithPersonaById(id).map(StudentMapper::toDomain);
     }
 
     @Override
-    public List<Student> saveAll(List<Student> students) {
-        return jpa.saveAll(students.stream().map(StudentMapper::toEntity).toList())
-                .stream()
-                .map(StudentMapper::toDomain)
+    public List<Student> findBySectionId(Long sectionId) {
+        return ubicaciones.findBySeccionIdAndFechaFinIsNull(sectionId).stream()
+                .map(u -> StudentMapper.toDomain(u.getMatricula().getEstudiante()))
                 .toList();
+    }
+
+    @Override
+    public Student save(Student student) {
+        throw new UnsupportedOperationException("No se crean estudiantes por la API en esta versión");
     }
 }

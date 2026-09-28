@@ -13,7 +13,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/courses/{courseId}/attendance")
+@RequestMapping("/api/v1/sections/{sectionId}/attendance")
 public class AttendanceController {
 
     private final AttendanceService attendanceService;
@@ -24,15 +24,15 @@ public class AttendanceController {
 
     @PostMapping
     public List<AttendanceResponse> save(@AuthenticationPrincipal User user,
-                                         @PathVariable Long courseId,
+                                         @PathVariable Long sectionId,
                                          @Valid @RequestBody AttendanceRequest request) {
-        return attendanceService.takeAttendance(user, courseId, request);
+        return attendanceService.takeAttendance(user, sectionId, request);
     }
 
     @GetMapping
     public List<AttendanceResponse> get(@AuthenticationPrincipal User user,
-                                        @PathVariable Long courseId,
+                                        @PathVariable Long sectionId,
                                         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        return attendanceService.getAttendance(user, courseId, date);
+        return attendanceService.getAttendance(user, sectionId, date);
     }
 }

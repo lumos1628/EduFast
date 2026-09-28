@@ -1,5 +1,9 @@
 package com.edufast.domain.model;
 
 public enum Role {
-    PROFESSOR
+    DOCENTE,
+    DIRECTOR,
+    APODERADO,
+    ESTUDIANTE,
+    ADMINISTRADOR
 }
