@@ -146,15 +146,22 @@ supabase start
 supabase db reset
 ```
 
-Para aplicar migraciones a un proyecto remoto, autentícate y enlaza el proyecto:
+Para aplicar migraciones al proyecto Supabase compartido de desarrollo, autentícate y enlázalo:
 
 ```bash
-supabase login
-supabase link --project-ref <PROJECT_REF>
-supabase db push
+npx supabase@latest login
+npx supabase@latest link --project-ref <DEV_PROJECT_REF>
+npx supabase@latest db push --dry-run
+npx supabase@latest db push
 ```
 
-El archivo `supabase/seed.sql` crea datos sintéticos de prueba: 22 secciones, 396 estudiantes y cuentas demo. No guardes contraseñas ni claves en Git. El backend se conecta con un rol de servicio que ignora RLS; las políticas RLS están pensadas para bloquear el acceso directo de clientes (`anon`/`authenticated`), no del servidor.
+`db push` aplica las migraciones; la semilla se ejecuta aparte y solo en desarrollo. Copia la URI PostgreSQL desde Supabase → **Database → Connect** y ejecútala una vez:
+
+```bash
+psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/seed.sql
+```
+
+La semilla crea datos sintéticos: 22 secciones, 396 estudiantes y cuentas demo. Es idempotente para permitir reinicializar el entorno de desarrollo. No ejecutes la semilla en producción ni guardes contraseñas o claves en Git. El backend se conecta a PostgreSQL con credenciales privadas; web y Android solo llaman a la API Spring. RLS y los permisos bloquean el acceso directo de clientes Supabase (`anon`/`authenticated`), no el acceso autorizado del backend.
 
 ### Variables de entorno del backend actual
 El prototipo funciona con la base local por defecto. En producción, define:
@@ -165,6 +172,18 @@ El prototipo funciona con la base local por defecto. En producción, define:
 | `DB_USER` | Usuario de la BD | `edufast` |
 | `DB_PASSWORD` | Contraseña de la BD | `edufast123` |
 | `JWT_SECRET` | Clave para firmar tokens | valor de desarrollo |
+
+Para el Supabase compartido, copia `backend/.env.example` a `backend/.env`, completa los valores con los datos de conexión del proyecto y expórtalos antes de iniciar el backend:
+
+```bash
+cp backend/.env.example backend/.env
+set -a
+source backend/.env
+set +a
+cd backend && ./gradlew bootRun
+```
+
+`backend/.env` está excluido de Git. Cada colaborador necesita acceso al proyecto Supabase de desarrollo y recibe sus credenciales por un canal privado; el `clone` del repositorio no concede acceso al proyecto. Mantén producción en un proyecto separado y no cargues allí la semilla demo.
 
 ### 1. Backend (Java + Spring Boot)
 ```bash

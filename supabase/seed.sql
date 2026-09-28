@@ -1,4 +1,4 @@
--- Datos completamente sintéticos para desarrollo: 6 grados de primaria,
+-- Datos completamente sintéticos e idempotentes para desarrollo: 6 grados de primaria,
 -- 5 de secundaria, dos secciones por grado y 18 estudiantes por sección.
 do $$
 declare
@@ -117,10 +117,22 @@ begin
 
     insert into public.asignaciones_roles (cuenta_usuario_id, rol_id, institucion_id, anio_escolar_id)
     select v_cuenta_docente, r.id, v_institucion_id, v_anio_id
-    from public.roles r where r.codigo = 'DOCENTE';
+    from public.roles r
+    where r.codigo = 'DOCENTE'
+      and not exists (
+          select 1
+          from public.asignaciones_roles ar
+          where ar.cuenta_usuario_id = v_cuenta_docente
+            and ar.rol_id = r.id
+            and ar.institucion_id = v_institucion_id
+            and ar.anio_escolar_id = v_anio_id
+            and ar.seccion_id is null
+            and ar.vigente_hasta is null
+      );
 
-    insert into public.asignaciones_docentes (cuenta_usuario_id, seccion_id, es_tutor)
-    values (v_cuenta_docente, v_seccion_4a, true)
+    insert into public.asignaciones_docentes
+        (cuenta_usuario_id, seccion_id, es_tutor, vigente_desde)
+    values (v_cuenta_docente, v_seccion_4a, true, date '2026-03-16')
     on conflict (cuenta_usuario_id, seccion_id, vigente_desde) do nothing;
 
     insert into public.personas (nombres, apellidos, tipo_documento, numero_documento)
@@ -151,14 +163,27 @@ begin
 
     insert into public.asignaciones_roles (cuenta_usuario_id, rol_id, institucion_id, anio_escolar_id)
     select v_cuenta_apoderado, r.id, v_institucion_id, v_anio_id
-    from public.roles r where r.codigo = 'APODERADO';
+    from public.roles r
+    where r.codigo = 'APODERADO'
+      and not exists (
+          select 1
+          from public.asignaciones_roles ar
+          where ar.cuenta_usuario_id = v_cuenta_apoderado
+            and ar.rol_id = r.id
+            and ar.institucion_id = v_institucion_id
+            and ar.anio_escolar_id = v_anio_id
+            and ar.seccion_id is null
+            and ar.vigente_hasta is null
+      );
 
     select e.id into v_estudiante_demo
     from public.estudiantes e
     where e.codigo_estudiante = 'DEMO-PRI-04-A-001' limit 1;
 
     insert into public.vinculos_apoderado_estudiante
-        (apoderado_id, estudiante_id, parentesco, puede_consultar, recibe_notificaciones, verificado_at)
-    values (v_apoderado_id, v_estudiante_demo, 'MADRE', true, true, now())
+        (apoderado_id, estudiante_id, parentesco, puede_consultar, recibe_notificaciones,
+         vigente_desde, verificado_at)
+    values (v_apoderado_id, v_estudiante_demo, 'MADRE', true, true,
+            date '2026-03-16', now())
     on conflict (apoderado_id, estudiante_id, vigente_desde) do nothing;
 end $$;
