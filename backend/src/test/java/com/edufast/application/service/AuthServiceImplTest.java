@@ -55,6 +55,51 @@ class AuthServiceImplTest {
     }
 
     @Test
+    void loginDeDirectorIncluyeSuAlcanceInstitucional() {
+        User user = new User(
+                2L,
+                "Directora Demo",
+                "director@edufast.test",
+                "hash",
+                Role.DIRECTOR,
+                "NIVEL_EDUCATIVO",
+                (short) 1,
+                null);
+        when(userRepository.findByEmail("director@edufast.test")).thenReturn(Optional.of(user));
+        when(passwordHasher.matches("clave-local", "hash")).thenReturn(true);
+        when(tokenProvider.generateToken(user)).thenReturn("token-directora");
+
+        LoginResponse response = authService.login(
+                new LoginRequest("director@edufast.test", "clave-local"));
+
+        assertEquals("DIRECTOR", response.role());
+        assertEquals("NIVEL_EDUCATIVO", response.roleScope());
+        assertEquals((short) 1, response.educationLevelId());
+    }
+
+    @Test
+    void loginDeSecretariaIncluyeSuDirectorResponsable() {
+        User user = new User(
+                3L,
+                "Secretaria Demo",
+                "secretaria@edufast.test",
+                "hash",
+                Role.SECRETARIA,
+                null,
+                null,
+                2L);
+        when(userRepository.findByEmail("secretaria@edufast.test")).thenReturn(Optional.of(user));
+        when(passwordHasher.matches("clave-local", "hash")).thenReturn(true);
+        when(tokenProvider.generateToken(user)).thenReturn("token-secretaria");
+
+        LoginResponse response = authService.login(
+                new LoginRequest("secretaria@edufast.test", "clave-local"));
+
+        assertEquals("SECRETARIA", response.role());
+        assertEquals(2L, response.supervisorUserId());
+    }
+
+    @Test
     void loginConPasswordIncorrectoLanzaExcepcion() {
         User user = new User(1L, "Profesor Demo", "profesor@edufast.com", "hash", Role.DOCENTE);
         when(userRepository.findByEmail("profesor@edufast.com")).thenReturn(Optional.of(user));

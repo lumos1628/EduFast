@@ -13,11 +13,19 @@ public final class CuentaUsuarioMapper {
     }
 
     public static User toDomain(CuentaUsuarioEntity entity, Role role) {
+        return toDomain(entity, role, null, null, null);
+    }
+
+    public static User toDomain(CuentaUsuarioEntity entity, Role role, String roleScope,
+                                Short educationLevelId, Long supervisorUserId) {
         return new User(
                 entity.getId(),
                 entity.getPersona().getNombreCompleto(),
                 entity.getCorreo(),
                 entity.getPasswordHash(),
-                role);
+                role,
+                roleScope,
+                educationLevelId,
+                supervisorUserId);
     }
 }

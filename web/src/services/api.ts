@@ -25,6 +25,9 @@ export interface LoginResponse {
   name: string
   email: string
   role: string
+  roleScope?: string | null
+  educationLevelId?: number | null
+  supervisorUserId?: number | null
 }
 
 export interface Section {

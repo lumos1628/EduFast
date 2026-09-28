@@ -3,6 +3,7 @@ package com.edufast.infrastructure.persistence.adapter;
 import com.edufast.domain.model.Role;
 import com.edufast.domain.model.User;
 import com.edufast.domain.port.UserRepository;
+import com.edufast.infrastructure.persistence.entity.AsignacionRolEntity;
 import com.edufast.infrastructure.persistence.mapper.CuentaUsuarioMapper;
 import com.edufast.infrastructure.persistence.repository.SpringDataAsignacionRolRepository;
 import com.edufast.infrastructure.persistence.repository.SpringDataCuentaUsuarioRepository;
@@ -30,18 +31,31 @@ public class UserRepositoryAdapter implements UserRepository {
     @Override
     public Optional<User> findByEmail(String email) {
         return cuentas.findByCorreo(email).flatMap(cuenta -> {
-            Role rol = asignaciones.findByCuentaId(cuenta.getId()).stream()
+            Optional<AsignacionRolEntity> asignacionActiva = asignaciones.findByCuentaId(cuenta.getId()).stream()
                     .filter(a -> a.getVigenteHasta() == null)
-                    .map(a -> rolDeCodigo(a.getRol().getCodigo()))
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .min(Comparator.comparingInt(Enum::ordinal))
-                    .orElse(null);
+                    .filter(a -> rolDeCodigo(a.getRol().getCodigo()).isPresent())
+                    .min(Comparator.comparingInt(a ->
+                            rolDeCodigo(a.getRol().getCodigo()).orElseThrow().ordinal()));
 
-            if (rol == null) {
+            if (asignacionActiva.isEmpty()) {
                 return Optional.empty();
             }
-            return Optional.of(CuentaUsuarioMapper.toDomain(cuenta, rol));
+
+            AsignacionRolEntity assignment = asignacionActiva.get();
+            Role role = rolDeCodigo(assignment.getRol().getCodigo()).orElseThrow();
+            String roleScope = role == Role.DIRECTOR
+                    ? assignment.getNivelEducativoId() == null ? "INSTITUCION" : "NIVEL_EDUCATIVO"
+                    : null;
+            Long supervisorUserId = assignment.getReportaA() == null
+                    ? null
+                    : assignment.getReportaA().getId();
+
+            return Optional.of(CuentaUsuarioMapper.toDomain(
+                    cuenta,
+                    role,
+                    roleScope,
+                    assignment.getNivelEducativoId(),
+                    supervisorUserId));
         });
     }
 

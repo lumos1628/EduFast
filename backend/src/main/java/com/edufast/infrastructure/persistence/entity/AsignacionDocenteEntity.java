@@ -23,6 +23,9 @@ public class AsignacionDocenteEntity {
     @Column(name = "es_tutor", nullable = false)
     private boolean esTutor;
 
+    @Column(name = "funcion", nullable = false)
+    private String funcion = "DOCENTE";
+
     @Column(name = "vigente_desde", nullable = false)
     private LocalDate vigenteDesde;
 
@@ -49,6 +52,10 @@ public class AsignacionDocenteEntity {
 
     public SeccionEntity getSeccion() {
         return seccion;
+    }
+
+    public String getFuncion() {
+        return funcion;
     }
 
     public LocalDate getVigenteDesde() {
