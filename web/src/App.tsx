@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import Attendance from './components/Attendance'
-import CourseList from './components/CourseList'
+import SectionList from './components/SectionList'
 import Login from './components/Login'
 import { loggedName, logout } from './services/api'
-import type { Course } from './services/api'
+import type { Section } from './services/api'
 
 export default function App() {
   const [token] = useState(() => localStorage.getItem('edufast_token'))
   const [userName, setUserName] = useState(loggedName())
-  const [course, setCourse] = useState<Course | null>(null)
+  const [section, setSection] = useState<Section | null>(null)
 
   if (!token) {
     return (
@@ -37,10 +37,10 @@ export default function App() {
         </span>
       </header>
 
-      {course ? (
-        <Attendance course={course} onBack={() => setCourse(null)} />
+      {section ? (
+        <Attendance section={section} onBack={() => setSection(null)} />
       ) : (
-        <CourseList onSelect={setCourse} />
+        <SectionList onSelect={setSection} />
       )}
     </div>
   )

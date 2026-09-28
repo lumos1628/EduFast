@@ -21,10 +21,11 @@ data class LoginResponseDto(
 )
 
 @Serializable
-data class CourseDto(
+data class SectionDto(
     val id: Long,
-    val name: String,
-    val code: String,
+    val nombre: String,
+    val grado: String,
+    val descripcion: String,
 )
 
 @Serializable

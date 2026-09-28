@@ -9,16 +9,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.edufast.mobile.domain.model.Course
+import com.edufast.mobile.domain.model.Section
 import com.edufast.mobile.domain.model.Student
 import com.edufast.mobile.domain.repository.EduFastRepository
 import kotlinx.coroutines.launch
 
 // Pantalla de asistencia: fecha + checkboxes + guardar. Igual que Attendance.tsx en la web.
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AttendanceScreen(
     repository: EduFastRepository,
-    course: Course,
+    section: Section,
     onBack: () -> Unit,
 ) {
     var students by remember { mutableStateOf<List<Student>>(emptyList()) }
@@ -27,9 +28,9 @@ fun AttendanceScreen(
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(course.id) {
+    LaunchedEffect(section.id) {
         try {
-            students = repository.getCourseStudents(course.id)
+            students = repository.getSectionStudents(section.id)
             present = students.associate { it.id to true }
         } catch (e: Exception) {
             error = "No se pudieron cargar los alumnos. Revisa la conexión."
@@ -39,7 +40,7 @@ fun AttendanceScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(course.name) },
+                title = { Text(section.descripcion) },
                 navigationIcon = {
                     TextButton(onClick = onBack) { Text("←") }
                 },
@@ -83,7 +84,7 @@ fun AttendanceScreen(
                         message = null
                         error = null
                         try {
-                            val saved = repository.saveAttendance(course.id, today(), present)
+                            val saved = repository.saveAttendance(section.id, today(), present)
                             message = "Guardado: ${saved.count { it.present }} presentes"
                         } catch (e: Exception) {
                             error = "No se pudo guardar la asistencia"

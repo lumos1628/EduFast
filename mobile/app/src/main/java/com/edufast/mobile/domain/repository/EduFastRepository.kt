@@ -1,7 +1,7 @@
 package com.edufast.mobile.domain.repository
 
 import com.edufast.mobile.domain.model.AttendanceEntry
-import com.edufast.mobile.domain.model.Course
+import com.edufast.mobile.domain.model.Section
 import com.edufast.mobile.domain.model.Student
 
 // PUERTO del dominio: el contrato que la app necesita.
@@ -11,11 +11,11 @@ interface EduFastRepository {
 
     suspend fun login(email: String, password: String): String
 
-    suspend fun getMyCourses(): List<Course>
+    suspend fun getMySections(): List<Section>
 
-    suspend fun getCourseStudents(courseId: Long): List<Student>
+    suspend fun getSectionStudents(sectionId: Long): List<Student>
 
-    suspend fun saveAttendance(courseId: Long, date: String, presentByStudent: Map<Long, Boolean>): List<AttendanceEntry>
+    suspend fun saveAttendance(sectionId: Long, date: String, presentByStudent: Map<Long, Boolean>): List<AttendanceEntry>
 
-    suspend fun getAttendance(courseId: Long, date: String): List<AttendanceEntry>
+    suspend fun getAttendance(sectionId: Long, date: String): List<AttendanceEntry>
 }

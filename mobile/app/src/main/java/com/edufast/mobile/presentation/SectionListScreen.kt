@@ -7,25 +7,25 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.edufast.mobile.domain.model.Course
+import com.edufast.mobile.domain.model.Section
 import com.edufast.mobile.domain.repository.EduFastRepository
 import kotlinx.coroutines.launch
 
-// Pantalla de cursos. Igual que CourseList.tsx en la web.
+// Pantalla de secciones. Igual que SectionList.tsx en la web.
 @Composable
-fun CourseListScreen(
+fun SectionListScreen(
     repository: EduFastRepository,
-    onSelect: (Course) -> Unit,
+    onSelect: (Section) -> Unit,
 ) {
-    var courses by remember { mutableStateOf<List<Course>>(emptyList()) }
+    var sections by remember { mutableStateOf<List<Section>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         try {
-            courses = repository.getMyCourses()
+            sections = repository.getMySections()
         } catch (e: Exception) {
-            error = "No se pudieron cargar tus cursos. Revisa la conexión."
+            error = "No se pudieron cargar tus secciones. Revisa la conexión."
         } finally {
             loading = false
         }
@@ -33,7 +33,7 @@ fun CourseListScreen(
 
     Scaffold { padding ->
         Column(modifier = Modifier.padding(padding).padding(16.dp)) {
-            Text("Tus cursos", style = MaterialTheme.typography.headlineSmall)
+            Text("Mis secciones", style = MaterialTheme.typography.headlineSmall)
 
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 
@@ -41,11 +41,10 @@ fun CourseListScreen(
                 CircularProgressIndicator()
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(courses) { course ->
-                        Card(onClick = { onSelect(course) }) {
+                    items(sections) { section ->
+                        Card(onClick = { onSelect(section) }) {
                             Column(Modifier.padding(16.dp)) {
-                                Text(course.name, style = MaterialTheme.typography.titleMedium)
-                                Text(course.code, style = MaterialTheme.typography.bodySmall)
+                                Text(section.descripcion, style = MaterialTheme.typography.titleMedium)
                             }
                         }
                     }

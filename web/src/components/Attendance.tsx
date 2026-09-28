@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import { getAttendance, getCourseStudents, saveAttendance } from '../services/api'
+import { getAttendance, getSectionStudents, saveAttendance } from '../services/api'
 import type {
   AttendanceEntry,
   AttendanceRecord,
-  Course,
+  Section,
   Student,
 } from '../services/api'
 
 interface Props {
-  course: Course
+  section: Section
   onBack: () => void
 }
 
@@ -20,7 +20,7 @@ function today(): string {
   return `${d.getFullYear()}-${month}-${day}`
 }
 
-export default function Attendance({ course, onBack }: Props) {
+export default function Attendance({ section, onBack }: Props) {
   const [students, setStudents] = useState<Student[]>([])
   const [date, setDate] = useState(today())
   const [present, setPresent] = useState<Record<number, boolean>>({})
@@ -30,10 +30,10 @@ export default function Attendance({ course, onBack }: Props) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  // Carga los alumnos del curso una sola vez
+  // Carga los alumnos de la sección una sola vez
   useEffect(() => {
     let cancelled = false
-    getCourseStudents(course.id)
+    getSectionStudents(section.id)
       .then((list) => {
         if (!cancelled) setStudents(list)
       })
@@ -43,7 +43,7 @@ export default function Attendance({ course, onBack }: Props) {
     return () => {
       cancelled = true
     }
-  }, [course.id])
+  }, [section.id])
 
   // Cada vez que cambian los alumnos o la fecha, carga la asistencia de ese día.
   // El flag "cancelled" evita que una respuesta lenta pise los cambios del usuario.
@@ -53,7 +53,7 @@ export default function Attendance({ course, onBack }: Props) {
 
     const allPresent = Object.fromEntries(students.map((s) => [s.id, true]))
 
-    getAttendance(course.id, date)
+    getAttendance(section.id, date)
       .then((records) => {
         if (cancelled) return
         setSaved(records)
@@ -75,7 +75,7 @@ export default function Attendance({ course, onBack }: Props) {
     return () => {
       cancelled = true
     }
-  }, [course.id, date, students])
+  }, [section.id, date, students])
 
   const allPresent = useMemo(
     () => students.length > 0 && students.every((s) => present[s.id]),
@@ -95,7 +95,7 @@ export default function Attendance({ course, onBack }: Props) {
       present: present[s.id] ?? true,
     }))
     try {
-      const records = await saveAttendance(course.id, date, attendance)
+      const records = await saveAttendance(section.id, date, attendance)
       setSaved(records)
       setMessage(`Asistencia del ${date} guardada (${records.filter((r) => r.present).length} presentes)`)
     } catch {
@@ -109,9 +109,9 @@ export default function Attendance({ course, onBack }: Props) {
     <div>
       <div className="topbar">
         <button className="link" onClick={onBack}>
-          ← Mis cursos
+          ← Mis secciones
         </button>
-        <h2>{course.name}</h2>
+        <h2>{section.descripcion}</h2>
       </div>
 
       <div className="controls">

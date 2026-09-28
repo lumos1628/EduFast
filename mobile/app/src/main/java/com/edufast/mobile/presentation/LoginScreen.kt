@@ -16,8 +16,8 @@ fun LoginScreen(
     repository: EduFastRepository,
     onLogin: () -> Unit,
 ) {
-    var email by remember { mutableStateOf("profesor@edufast.com") }
-    var password by remember { mutableStateOf("123456") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()

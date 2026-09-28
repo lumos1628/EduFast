@@ -27,10 +27,11 @@ export interface LoginResponse {
   role: string
 }
 
-export interface Course {
+export interface Section {
   id: number
-  name: string
-  code: string
+  nombre: string
+  grado: string
+  descripcion: string
 }
 
 export interface Student {
@@ -73,26 +74,26 @@ export function loggedName(): string {
   return localStorage.getItem('edufast_name') ?? ''
 }
 
-export async function getMyCourses(): Promise<Course[]> {
-  const res = await fetch(`${BASE}/courses/me`, { headers: authHeaders() })
+export async function getMySections(): Promise<Section[]> {
+  const res = await fetch(`${BASE}/sections/me`, { headers: authHeaders() })
   handleUnauthorized(res)
-  if (!res.ok) throw new Error('Error al cargar cursos')
+  if (!res.ok) throw new Error('Error al cargar secciones')
   return res.json()
 }
 
-export async function getCourseStudents(courseId: number): Promise<Student[]> {
-  const res = await fetch(`${BASE}/courses/${courseId}/students`, { headers: authHeaders() })
+export async function getSectionStudents(sectionId: number): Promise<Student[]> {
+  const res = await fetch(`${BASE}/sections/${sectionId}/students`, { headers: authHeaders() })
   handleUnauthorized(res)
   if (!res.ok) throw new Error('Error al cargar alumnos')
   return res.json()
 }
 
 export async function saveAttendance(
-  courseId: number,
+  sectionId: number,
   date: string,
   attendance: AttendanceEntry[],
 ): Promise<AttendanceRecord[]> {
-  const res = await fetch(`${BASE}/courses/${courseId}/attendance`, {
+  const res = await fetch(`${BASE}/sections/${sectionId}/attendance`, {
     method: 'POST',
     headers: { ...authHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify({ date, attendance }),
@@ -102,8 +103,8 @@ export async function saveAttendance(
   return res.json()
 }
 
-export async function getAttendance(courseId: number, date: string): Promise<AttendanceRecord[]> {
-  const res = await fetch(`${BASE}/courses/${courseId}/attendance?date=${date}`, {
+export async function getAttendance(sectionId: number, date: string): Promise<AttendanceRecord[]> {
+  const res = await fetch(`${BASE}/sections/${sectionId}/attendance?date=${date}`, {
     headers: authHeaders(),
   })
   handleUnauthorized(res)

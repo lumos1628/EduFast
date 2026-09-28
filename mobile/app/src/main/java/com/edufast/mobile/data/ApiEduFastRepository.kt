@@ -3,12 +3,12 @@ package com.edufast.mobile.data
 import com.edufast.mobile.data.dto.AttendanceEntryDto
 import com.edufast.mobile.data.dto.AttendanceRequestDto
 import com.edufast.mobile.data.dto.AttendanceResponseDto
-import com.edufast.mobile.data.dto.CourseDto
 import com.edufast.mobile.data.dto.LoginRequestDto
 import com.edufast.mobile.data.dto.LoginResponseDto
+import com.edufast.mobile.data.dto.SectionDto
 import com.edufast.mobile.data.dto.StudentDto
 import com.edufast.mobile.domain.model.AttendanceEntry
-import com.edufast.mobile.domain.model.Course
+import com.edufast.mobile.domain.model.Section
 import com.edufast.mobile.domain.model.Student
 import com.edufast.mobile.domain.repository.EduFastRepository
 import io.ktor.client.HttpClient
@@ -47,22 +47,22 @@ class ApiEduFastRepository(
         return dto.token
     }
 
-    override suspend fun getMyCourses(): List<Course> {
-        val dtos: List<CourseDto> = client.get("$baseUrl/api/v1/courses/me") {
+    override suspend fun getMySections(): List<Section> {
+        val dtos: List<SectionDto> = client.get("$baseUrl/api/v1/sections/me") {
             bearerAuth(token())
         }.body()
-        return dtos.map { Course(it.id, it.name, it.code) }
+        return dtos.map { Section(it.id, it.nombre, it.grado, it.descripcion) }
     }
 
-    override suspend fun getCourseStudents(courseId: Long): List<Student> {
-        val dtos: List<StudentDto> = client.get("$baseUrl/api/v1/courses/$courseId/students") {
+    override suspend fun getSectionStudents(sectionId: Long): List<Student> {
+        val dtos: List<StudentDto> = client.get("$baseUrl/api/v1/sections/$sectionId/students") {
             bearerAuth(token())
         }.body()
         return dtos.map { Student(it.id, it.name, it.code) }
     }
 
     override suspend fun saveAttendance(
-        courseId: Long,
+        sectionId: Long,
         date: String,
         presentByStudent: Map<Long, Boolean>,
     ): List<AttendanceEntry> {
@@ -72,7 +72,7 @@ class ApiEduFastRepository(
                 AttendanceEntryDto(studentId, present)
             },
         )
-        val dtos: List<AttendanceResponseDto> = client.post("$baseUrl/api/v1/courses/$courseId/attendance") {
+        val dtos: List<AttendanceResponseDto> = client.post("$baseUrl/api/v1/sections/$sectionId/attendance") {
             contentType(ContentType.Application.Json)
             bearerAuth(token())
             setBody(request)
@@ -80,9 +80,9 @@ class ApiEduFastRepository(
         return dtos.toDomain()
     }
 
-    override suspend fun getAttendance(courseId: Long, date: String): List<AttendanceEntry> {
+    override suspend fun getAttendance(sectionId: Long, date: String): List<AttendanceEntry> {
         val dtos: List<AttendanceResponseDto> =
-            client.get("$baseUrl/api/v1/courses/$courseId/attendance?date=$date") {
+            client.get("$baseUrl/api/v1/sections/$sectionId/attendance?date=$date") {
                 bearerAuth(token())
             }.body()
         return dtos.toDomain()
