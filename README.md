@@ -32,8 +32,6 @@ Hicimos **2 encuestas a docentes** (8 + 4 respuestas, incluyendo docentes de ins
 - Libreta de un curso completo: **1 a 3+ horas** en Excel.
 
 ### 💬 Mensajes literales de los docentes
-> *"Diseñar cosas sencillas, rápidas y que funcionen **sin internet o con pocos datos**, porque el wifi es casi mito."*
->
 > *"Herramientas que nos sistematicen el llenado de **notas, listas de asistencia** y generación de **informes pedagógicos**."*
 
 *(Los archivos de las encuestas no están en el repo por privacidad.)*
@@ -80,6 +78,8 @@ domain/          (model, port, exception)             ← puro, sin frameworks
 
 Las reglas de capas están protegidas por **tests automáticos de arquitectura** (ArchUnit): si alguien las rompe, `./gradlew test` falla.
 
+El modelo escolar está versionado en `supabase/migrations/` y la API usa matrícula por año, grado y sección. Los endpoints de asistencia operan sobre secciones (`/api/v1/sections/...`); las tablas se crean con migraciones y Hibernate valida el esquema al arrancar (`ddl-auto=validate`).
+
 ### Estructura del monorepo
 
 ```
@@ -88,6 +88,9 @@ eduFast/
 ├── mobile/          ← Kotlin + Android (esqueleto)
 ├── web/             ← React + Vite + TypeScript
 ├── ARCHITECTURE.md  ← 📚 la arquitectura explicada desde cero
+├── USE_CASES.md     ← flujos de la primera entrega
+├── DATABASE.md      ← ERD, reglas y diccionario de datos
+├── supabase/        ← migraciones y semilla sintética
 ├── AGENTS.md        ← 🤖 reglas obligatorias para agentes de IA y colaboradores
 └── README.md
 ```
@@ -99,17 +102,19 @@ eduFast/
 | Documento | Para quién | Contenido |
 |---|---|---|
 | `ARCHITECTURE.md` | Personas que aprenden arquitectura | La arquitectura explicada con analogías, el viaje de una petición real, evaluación honesta, tutorial para agregar features y glosario |
+| `USE_CASES.md` | Producto y desarrollo | Actores, flujos, excepciones y alcance de la primera entrega |
+| `DATABASE.md` | Producto y desarrollo | Diagrama ER, tablas, restricciones, seguridad y migraciones |
 | `AGENTS.md` | Agentes de IA y colaboradores nuevos | Reglas obligatorias, dónde va cada archivo, checklist para agregar features, errores a evitar |
 
 ---
 
 ## 🧭 Roadmap (post-MVP)
 
-1. Registro de notas por competencia (dolor #1)
-2. Conclusiones descriptivas con IA (dolor #2)
-3. Alertas automáticas a padres (dolor #4)
-4. Planificación de unidades/sesiones (dolor #5)
-5. Modo offline con sincronización (requisito clave: "el wifi es casi mito")
+1. Alinear la API de asistencia con matrícula por año, grado y sección.
+2. Push y consulta segura para apoderados.
+3. Publicación y seguimiento de actividades para casa.
+4. Planificación de unidades/sesiones y evaluación por competencias.
+5. IA, simuladores y repositorio multimedia según futuras épicas.
 
 ---
 
@@ -118,15 +123,41 @@ eduFast/
 ### Requisitos
 - Java 25, Node 20+, PostgreSQL 16 (local, puerto 5432).
 
-### Base de datos (una sola vez)
+### Base de datos local (desarrollo)
 ```sql
-CREATE ROLE edufast WITH LOGIN PASSWORD 'edufast123';
+CREATE ROLE edufast WITH LOGIN PASSWORD 'edufast123' BYPASSRLS;
 CREATE DATABASE edufast OWNER edufast;
 ```
-Las tablas se crean solas (JPA) y se cargan datos de ejemplo al arrancar.
+Aplica migraciones y semilla sobre esa base:
+```bash
+psql -d edufast -f supabase/migrations/20260928000100_base_escolar.sql
+psql -d edufast -f supabase/migrations/20260928000200_curriculo_planificacion.sql
+psql -d edufast -f supabase/migrations/20260928000300_actividades_notificaciones.sql
+psql -d edufast -f supabase/seed.sql
+```
+El rol `edufast` usa `BYPASSRLS` para comportarse como el rol de servicio del backend. Hibernate valida el esquema, no lo modifica.
 
-### Variables de entorno (opcional en desarrollo)
-El proyecto funciona sin configurar nada (hay valores por defecto para desarrollo). En producción, define:
+### Migraciones Supabase del esquema
+
+Con Supabase CLI instalado y Docker activo, ejecuta localmente:
+
+```bash
+supabase start
+supabase db reset
+```
+
+Para aplicar migraciones a un proyecto remoto, autentícate y enlaza el proyecto:
+
+```bash
+supabase login
+supabase link --project-ref <PROJECT_REF>
+supabase db push
+```
+
+El archivo `supabase/seed.sql` crea datos sintéticos de prueba: 22 secciones, 396 estudiantes y cuentas demo. No guardes contraseñas ni claves en Git. El backend se conecta con un rol de servicio que ignora RLS; las políticas RLS están pensadas para bloquear el acceso directo de clientes (`anon`/`authenticated`), no del servidor.
+
+### Variables de entorno del backend actual
+El prototipo funciona con la base local por defecto. En producción, define:
 
 | Variable | Qué es | Default (solo dev) |
 |---|---|---|
@@ -157,7 +188,7 @@ Requiere **Android Studio**. Abrir la carpeta `mobile/`, sincronizar Gradle y co
 
 ### Datos de prueba
 ```
-Email: profesor@edufast.com
-Password: 123456
-Cursos: Matemática, Comunicación, Ciencia y Tecnología (10 alumnos)
+Docente:   profesor@edufast.com / 123456   (asignado a 4.º de primaria, sección A)
+Apoderado: apoderado@edufast.com / 123456  (vinculado a un estudiante de esa sección)
 ```
+Los datos los crea `supabase/seed.sql` solo en desarrollo.

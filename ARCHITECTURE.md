@@ -34,6 +34,12 @@ Con capas, cada pieza se puede **cambiar, probar y entender por separado**.
 
 ## 2. La arquitectura de EduFast, explicada desde cero
 
+### Estado del esquema escolar
+
+La API representa matrícula anual por grado y sección: el docente ve sus secciones asignadas, consulta la lista de estudiantes de cada sección y registra la asistencia diaria. El esquema físico está versionado en `supabase/migrations/` y las entidades JPA mapean esas tablas en español. Hibernate valida el esquema (`ddl-auto=validate`); las migraciones son la única fuente de verdad de la estructura.
+
+Las migraciones SQL son infraestructura: describen la estructura física y se mantienen junto al ERD de `DATABASE.md`. El dominio continúa con modelos puros en inglés; las entidades JPA y mappers traducen entre el dominio y las tablas. Web y Android llaman únicamente a la API Spring, nunca a Supabase directamente.
+
 ### El patrón: Clean Architecture (Puertos y Adaptadores)
 
 EduFast sigue **Clean Architecture**, también llamada "Hexagonal" o "Puertos y Adaptadores". Su regla de oro:
@@ -66,13 +72,14 @@ EduFast sigue **Clean Architecture**, también llamada "Hexagonal" o "Puertos y 
 
 | Restaurante | EduFast | Archivos de ejemplo |
 |---|---|---|
-| Recetas e ingredientes | `domain/model/` | `Course.java`, `Student.java`, `Attendance.java` |
+| Recetas e ingredientes | `domain/model/` | `Section.java`, `Student.java`, `Attendance.java` |
 | Contratos con proveedores | `domain/port/` | `AttendanceRepository.java`, `EmailSender` (futuro) |
 | Errores de la casa | `domain/exception/` | `NotFoundException.java`, `ForbiddenException.java` |
 | Cocineros | `application/service/` | `AttendanceServiceImpl.java` |
 | Carta del menú | `application/dto/` | `AttendanceRequest.java`, `LoginResponse.java` |
 | Meseros | `infrastructure/controller/` | `AttendanceController.java` |
 | Almacén | `infrastructure/persistence/` | `entity/`, `mapper/`, `repository/`, `adapter/` |
+| Migraciones del esquema objetivo | `supabase/migrations/` | SQL versionado aplicado con Supabase CLI |
 | Vigilante de la puerta | `infrastructure/security/` | `JwtAuthenticationFilter.java` |
 
 ### Término clave: inyección de dependencias
@@ -82,7 +89,7 @@ EduFast sigue **Clean Architecture**, también llamada "Hexagonal" o "Puertos y 
 **En el código:** `AttendanceServiceImpl` declara en su constructor lo que necesita:
 
 ```java
-public AttendanceServiceImpl(CourseService courseService,
+public AttendanceServiceImpl(SectionService sectionService,
                              AttendanceRepository attendanceRepository, ...) {
 ```
 
@@ -92,28 +99,28 @@ y **Spring** (el "gerente del restaurante") se lo entrega al arrancar. Por eso l
 
 Sigamos el clic del profesor hasta PostgreSQL y de vuelta. Cada pieza se define la primera vez que aparece.
 
-1. **El clic (web).** En `web/src/components/Attendance.tsx`, el profesor marca checkboxes y pulsa *Guardar asistencia*. `handleSave()` arma la lista y llama a `saveAttendance(course.id, date, attendance)`.
+1. **El clic (web).** En `web/src/components/Attendance.tsx`, el profesor marca checkboxes y pulsa *Guardar asistencia*. `handleSave()` arma la lista y llama a `saveAttendance(section.id, date, attendance)`.
 
-2. **La capa de servicios web.** `web/src/services/api.ts` es la **única** parte del frontend que habla con el backend. Envía `POST /api/v1/courses/1/attendance` con el JSON y el token en el header `Authorization: Bearer ...`.
+2. **La capa de servicios web.** `web/src/services/api.ts` es la **única** parte del frontend que habla con el backend. Envía `POST /api/v1/sections/5/attendance` con el JSON y el token en el header `Authorization: Bearer ...`.
 
 3. **El vigilante (backend).** `JwtAuthenticationFilter.java` es un **filtro**: un guardia que revisa *toda* petición antes de dejarla pasar. Valida el **JWT** (una "pulsera de entrada" firmada que el backend te dio al hacer login) y carga tu usuario. Token falso o vencido → no pasas.
 
 4. **El mesero.** `AttendanceController.java` es un **controller**: la clase que atiende una ruta HTTP. Su método `save(...)` recibe el JSON ya convertido en `AttendanceRequest` y al usuario identificado por el vigilante. El mesero **no aplica reglas de negocio**: solo entrega el pedido al cocinero.
 
 5. **El cocinero.** `AttendanceServiceImpl.takeAttendance(...)` es un **service**: donde vive la lógica. En orden:
-   - `courseService.getOwnedCourse(user, courseId)` → el curso existe **y es tuyo** (si no: `NotFoundException` o `ForbiddenException`).
+   - `sectionService.getAssignedSection(user, sectionId)` → la sección existe **y está asignada al docente** (si no: `NotFoundException`).
    - Elimina alumnos duplicados del pedido (gana el último).
-   - Por cada alumno: verifica que existe y que **está matriculado en tu curso** (`EnrollmentRepository.existsByCourseIdAndStudentId`).
-   - Si ya había asistencia ese día, la actualiza; si no, la crea.
-   - Guarda todo de una vez con `saveAll` (una sola ida al almacén).
+   - El repositorio valida que cada alumno **está matriculado en esa sección** (`UbicacionMatricula` vigente).
+   - Guarda la jornada y sus registros de una vez; la jornada queda confirmada.
+   - Devuelve los registros guardados como `AttendanceResponse`.
 
 6. **El contrato (puerto).** `AttendanceRepository` es una **interfaz** en `domain/port/`. El cocinero solo conoce ese contrato: no sabe si detrás hay PostgreSQL, un Excel o memoria.
 
-7. **El almacenero (adaptador).** `AttendanceRepositoryAdapter.java` implementa el puerto: traduce modelos de dominio a entidades JPA con `AttendanceMapper`, llama a `SpringDataAttendanceRepository` (interfaz de Spring Data que genera el SQL sola) y devuelve modelos de dominio.
+7. **El almacenero (adaptador).** `AttendanceRepositoryAdapter.java` implementa el puerto: traduce modelos de dominio a `JornadaAsistenciaEntity` y `RegistroAsistenciaEntity` y llama a los repositorios Spring Data.
 
-8. **La despensa.** PostgreSQL, tabla `attendance`. Las **entidades JPA** (`AttendanceEntity.java`) describen las tablas con anotaciones (`@Entity`, `@Column`).
+8. **La despensa.** PostgreSQL, tablas `jornadas_asistencia` y `registros_asistencia`. El esquema lo crean las migraciones de `supabase/migrations/`, no Hibernate.
 
-9. **El camino de vuelta.** El cocinero devuelve `List<AttendanceResponse>` (un **DTO** = Data Transfer Object, "el plato servido": solo los datos que el cliente necesita, nunca la entidad cruda). El mesero lo convierte a JSON, viaja por HTTP, y React muestra *"Asistencia guardada (9 presentes)"*.
+9. **El camino de vuelta.** El cocinero devuelve `List<AttendanceResponse>` (un **DTO** = Data Transfer Object, "el plato servido": solo los datos que el cliente necesita, nunca la entidad cruda). El mesero lo convierte a JSON, viaja por HTTP, y React muestra *"Asistencia del 2026-09-14 guardada (18 presentes)"*.
 
 ### ¿Y el móvil?
 
@@ -127,7 +134,7 @@ Misma idea en Kotlin: `ApiEduFastRepository.kt` equivale a `api.ts` (el único q
 
 - **Dominio 100% puro:** `domain/` no importa nada de frameworks. Verificado automáticamente (sección 5).
 - **Puertos y adaptadores reales:** cambiar de PostgreSQL a otra base de datos = reescribir solo `infrastructure/persistence/`, sin tocar ni una línea de negocio.
-- **Autorización por propietario:** `getOwnedCourse()` impide que un profesor vea o edite cursos ajenos.
+- **Autorización por asignación:** `getAssignedSection()` impide que un docente vea o registre asistencia en secciones que no tiene asignadas.
 - **Validación de matrícula:** no se puede guardar asistencia de alumnos que no pertenecen al curso.
 - **Errores consistentes:** las excepciones de negocio se traducen a HTTP en un solo lugar (`GlobalExceptionHandler`).
 - **Tests:** servicios con mocks + reglas de arquitectura automáticas.
@@ -140,7 +147,7 @@ Misma idea en Kotlin: `ApiEduFastRepository.kt` equivale a `api.ts` (el único q
    *Dolor:* cambiar de framework web obligaría a tocar la lógica de negocio.
    *Fix:* excepciones puras en `domain/exception/`; la traducción a HTTP vive en `GlobalExceptionHandler`.
 
-2. **Depender de la clase concreta.** `AttendanceServiceImpl` usaba `CourseServiceImpl` en vez de la interfaz `CourseService`.
+2. **Depender de la clase concreta.** `AttendanceServiceImpl` usaba `SectionServiceImpl` en vez de la interfaz `SectionService`.
    *Dolor:* no puedes cambiar ni probar un servicio sin arrastrar al otro.
    *Fix:* depender siempre de la interfaz.
 
@@ -258,7 +265,7 @@ Si tú (o un agente de IA) rompes una regla, `./gradlew test` **falla con un men
 | Término | Definición en una línea | Ejemplo en el código |
 |---|---|---|
 | Capa | Grupo de archivos con un solo rol | `domain/`, `application/`, `infrastructure/` |
-| Dominio | Las reglas y conceptos del negocio, puros | `domain/model/Course.java` |
+| Dominio | Las reglas y conceptos del negocio, puros | `domain/model/Section.java` |
 | Modelo | Clase que representa un concepto (curso, alumno) | `domain/model/Student.java` |
 | Puerto | Interfaz: el contrato que el negocio necesita | `domain/port/AttendanceRepository.java` |
 | Adaptador | Clase que cumple un puerto con tecnología real | `persistence/adapter/AttendanceRepositoryAdapter.java` |
@@ -277,6 +284,6 @@ Si tú (o un agente de IA) rompes una regla, `./gradlew test` **falla con un men
 | Code smell | Código que funciona pero causará dolor futuro | Ver sección 3 |
 | CORS | Reglas de qué páginas web pueden llamar a tu API | `SecurityConfig.corsConfigurationSource` |
 | Seeder | Código que carga datos de ejemplo al arrancar | `infrastructure/config/DataSeeder.java` |
-| Endpoint | Una URL + método HTTP que expone el backend | `POST /api/v1/courses/{id}/attendance` |
+| Endpoint | Una URL + método HTTP que expone el backend | `POST /api/v1/sections/{id}/attendance` |
 | ArchUnit | Librería que testea reglas de arquitectura | `src/test/java/com/edufast/ArchitectureTest.java` |
 | Proxy (Vite) | Redirección de `/api` del frontend al backend en desarrollo | `web/vite.config.ts` |
