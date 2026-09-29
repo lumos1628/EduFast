@@ -14,6 +14,6 @@ class EduFastApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        repository = ApiEduFastRepository(TokenStore(this))
+        repository = ApiEduFastRepository(TokenStore(this), BuildConfig.API_BASE_URL)
     }
 }
