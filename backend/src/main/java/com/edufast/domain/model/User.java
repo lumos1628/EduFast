@@ -11,7 +11,7 @@ public class User {
     private final String email;
     private final String password;
     private final Role role;
-    private final String roleScope;
+    private final RoleScope roleScope;
     private final Short educationLevelId;
     private final Long supervisorUserId;
 
@@ -20,7 +20,7 @@ public class User {
     }
 
     public User(Long id, String name, String email, String password, Role role,
-                String roleScope, Short educationLevelId, Long supervisorUserId) {
+                RoleScope roleScope, Short educationLevelId, Long supervisorUserId) {
         this.id = id;
         this.name = name;
         this.email = email;
@@ -51,7 +51,7 @@ public class User {
         return role;
     }
 
-    public String getRoleScope() {
+    public RoleScope getRoleScope() {
         return roleScope;
     }
 

@@ -39,7 +39,7 @@ public class JwtService implements TokenProvider {
                 .expiration(new Date(System.currentTimeMillis() + expirationMs));
 
         if (user.getRoleScope() != null) {
-            builder.claim("role_scope", user.getRoleScope());
+            builder.claim("role_scope", user.getRoleScope().name());
         }
         if (user.getEducationLevelId() != null) {
             builder.claim("education_level_id", user.getEducationLevelId());

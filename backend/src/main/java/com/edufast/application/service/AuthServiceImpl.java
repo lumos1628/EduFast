@@ -40,7 +40,7 @@ public class AuthServiceImpl implements AuthService {
                 user.getName(),
                 user.getEmail(),
                 user.getRole().name(),
-                user.getRoleScope(),
+                user.getRoleScope() == null ? null : user.getRoleScope().name(),
                 user.getEducationLevelId(),
                 user.getSupervisorUserId());
     }

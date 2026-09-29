@@ -4,6 +4,7 @@ import com.edufast.application.dto.LoginRequest;
 import com.edufast.application.dto.LoginResponse;
 import com.edufast.domain.exception.UnauthorizedException;
 import com.edufast.domain.model.Role;
+import com.edufast.domain.model.RoleScope;
 import com.edufast.domain.model.User;
 import com.edufast.domain.port.PasswordHasher;
 import com.edufast.domain.port.TokenProvider;
@@ -62,7 +63,7 @@ class AuthServiceImplTest {
                 "director@edufast.test",
                 "hash",
                 Role.DIRECTOR,
-                "NIVEL_EDUCATIVO",
+                RoleScope.NIVEL_EDUCATIVO,
                 (short) 1,
                 null);
         when(userRepository.findByEmail("director@edufast.test")).thenReturn(Optional.of(user));

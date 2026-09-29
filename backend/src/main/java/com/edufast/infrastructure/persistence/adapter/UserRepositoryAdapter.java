@@ -1,6 +1,7 @@
 package com.edufast.infrastructure.persistence.adapter;
 
 import com.edufast.domain.model.Role;
+import com.edufast.domain.model.RoleScope;
 import com.edufast.domain.model.User;
 import com.edufast.domain.port.UserRepository;
 import com.edufast.infrastructure.persistence.entity.AsignacionRolEntity;
@@ -14,7 +15,7 @@ import java.util.Optional;
 
 /**
  * ADAPTADOR del puerto UserRepository.
- * Construye el User a partir de persona + cuenta + primer rol vigente.
+ * Construye el User a partir de persona + cuenta + la asignación de rol vigente.
  */
 @Repository
 public class UserRepositoryAdapter implements UserRepository {
@@ -31,39 +32,41 @@ public class UserRepositoryAdapter implements UserRepository {
     @Override
     public Optional<User> findByEmail(String email) {
         return cuentas.findByCorreo(email).flatMap(cuenta -> {
-            Optional<AsignacionRolEntity> asignacionActiva = asignaciones.findByCuentaId(cuenta.getId()).stream()
+            Optional<RoleAssignment> asignacionActiva = asignaciones.findByCuentaId(cuenta.getId()).stream()
                     .filter(a -> a.getVigenteHasta() == null)
-                    .filter(a -> rolDeCodigo(a.getRol().getCodigo()).isPresent())
-                    .min(Comparator.comparingInt(a ->
-                            rolDeCodigo(a.getRol().getCodigo()).orElseThrow().ordinal()));
+                    .flatMap(a -> roleOf(a).map(role -> new RoleAssignment(role, a)).stream())
+                    .min(Comparator.comparingInt(assignment -> assignment.role().ordinal()));
 
-            if (asignacionActiva.isEmpty()) {
-                return Optional.empty();
-            }
-
-            AsignacionRolEntity assignment = asignacionActiva.get();
-            Role role = rolDeCodigo(assignment.getRol().getCodigo()).orElseThrow();
-            String roleScope = role == Role.DIRECTOR
-                    ? assignment.getNivelEducativoId() == null ? "INSTITUCION" : "NIVEL_EDUCATIVO"
-                    : null;
-            Long supervisorUserId = assignment.getReportaA() == null
-                    ? null
-                    : assignment.getReportaA().getId();
-
-            return Optional.of(CuentaUsuarioMapper.toDomain(
+            return asignacionActiva.map(assignment -> CuentaUsuarioMapper.toDomain(
                     cuenta,
-                    role,
-                    roleScope,
-                    assignment.getNivelEducativoId(),
-                    supervisorUserId));
+                    assignment.role(),
+                    scopeOf(assignment),
+                    assignment.asignacion().getNivelEducativoId(),
+                    supervisorOf(assignment.asignacion())));
         });
     }
 
-    private Optional<Role> rolDeCodigo(String codigo) {
+    private static Optional<Role> roleOf(AsignacionRolEntity asignacion) {
         try {
-            return Optional.of(Role.valueOf(codigo));
+            return Optional.of(Role.valueOf(asignacion.getRol().getCodigo()));
         } catch (IllegalArgumentException e) {
             return Optional.empty();
         }
+    }
+
+    private static RoleScope scopeOf(RoleAssignment assignment) {
+        if (assignment.role() != Role.DIRECTOR) {
+            return null;
+        }
+        return assignment.asignacion().getNivelEducativoId() == null
+                ? RoleScope.INSTITUCION
+                : RoleScope.NIVEL_EDUCATIVO;
+    }
+
+    private static Long supervisorOf(AsignacionRolEntity asignacion) {
+        return asignacion.getReportaA() == null ? null : asignacion.getReportaA().getId();
+    }
+
+    private record RoleAssignment(Role role, AsignacionRolEntity asignacion) {
     }
 }
