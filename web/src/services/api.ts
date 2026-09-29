@@ -2,6 +2,15 @@
 
 const BASE = '/api/v1'
 
+// El backend no respondió (servidor apagado, sin red, CORS...). Se distingue
+// de un 401 para que la UI no confunda un problema de red con credenciales.
+export class NetworkError extends Error {
+  constructor() {
+    super('Sin conexión con el servidor')
+    this.name = 'NetworkError'
+  }
+}
+
 function getToken(): string | null {
   return localStorage.getItem('edufast_token')
 }
@@ -56,11 +65,16 @@ export interface AttendanceRecord {
 }
 
 export async function login(email: string, password: string): Promise<LoginResponse> {
-  const res = await fetch(`${BASE}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  })
+  let res: Response
+  try {
+    res = await fetch(`${BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    })
+  } catch {
+    throw new NetworkError()
+  }
   if (!res.ok) throw new Error('Credenciales inválidas')
   const data = (await res.json()) as LoginResponse
   localStorage.setItem('edufast_token', data.token)
