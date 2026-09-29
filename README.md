@@ -123,6 +123,18 @@ eduFast/
 ### Requisitos
 - Java 25, Node 20+, PostgreSQL 16 (local, puerto 5432).
 
+### Configuración para colaboradores
+
+1. Copia la plantilla y exporta las variables:
+   ```bash
+   cp backend/.env.example backend/.env
+   set -a && source backend/.env && set +a
+   ```
+2. La plantilla ya trae los **valores compartidos de desarrollo** (`EDUFAST_DEMO_EMAIL_DOMAIN=example.test`, `EDUFAST_DEMO_PASSWORD=demo123`). Solo debes completar los campos **privados** en `backend/.env`:
+   - `DB_URL`, `DB_USER`, `DB_PASSWORD`, `SUPABASE_DB_URL`: credenciales del Supabase de desarrollo, que se comparten por un canal privado. El `clone` del repositorio **no** concede acceso al proyecto.
+   - `JWT_SECRET`: genera uno propio con `openssl rand -hex 32`.
+3. No re-ejecutes la semilla en la base compartida sin acordarlo, porque cambiaría los datos para todo el equipo.
+
 ### Base de datos local (desarrollo)
 ```sql
 CREATE ROLE edufast WITH LOGIN PASSWORD 'edufast123' BYPASSRLS;
@@ -135,10 +147,7 @@ psql -d edufast -f supabase/migrations/20260928000200_curriculo_planificacion.sq
 psql -d edufast -f supabase/migrations/20260928000300_actividades_notificaciones.sql
 psql -d edufast -f supabase/migrations/20260928000400_roles_y_alcances_personal.sql
 cp backend/.env.example backend/.env
-# Completa EDUFAST_DEMO_PASSWORD en backend/.env y exporta los parámetros de demo.
-set -a
-source backend/.env
-set +a
+set -a && source backend/.env && set +a
 psql -d edufast -f supabase/seed.sql
 ```
 El rol `edufast` usa `BYPASSRLS` para comportarse como el rol de servicio del backend. Hibernate valida el esquema, no lo modifica.
@@ -176,27 +185,28 @@ psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/seed.sql
 
 `db push` aplica el esquema; la semilla se ejecuta por separado con `psql` y solo en desarrollo, porque toma su configuración del entorno local. Genera 10 estudiantes por sección por defecto y una cuenta de apoderado por familia; las parejas de hermanos y el tamaño de cada sección son parámetros locales. También genera cuentas demo de docentes, directores y secretaría, con correos del dominio de prueba configurado y una contraseña que defines localmente. No se crean cuentas para estudiantes ni se guardan personas o contraseñas en Git. No cargues la semilla en producción. El backend se conecta a PostgreSQL con credenciales privadas; web y Android solo llaman a la API Spring.
 
-### Variables de entorno del backend actual
-El prototipo funciona con la base local por defecto. En producción, define:
+### Variables de entorno del backend
 
-| Variable | Qué es | Default (solo dev) |
-|---|---|---|
-| `DB_URL` | URL de PostgreSQL | `jdbc:postgresql://localhost:5432/edufast` |
-| `DB_USER` | Usuario de la BD | `edufast` |
-| `DB_PASSWORD` | Contraseña de la BD | `edufast123` |
-| `JWT_SECRET` | Clave para firmar tokens | valor de desarrollo |
+| Variable | Tipo | Qué es | Valor |
+|---|---|---|---|
+| `DB_URL` | Privado | URL JDBC de PostgreSQL | Supabase → Connect, formato `jdbc:postgresql://...:5432/postgres` |
+| `DB_USER` | Privado | Usuario de la BD | Supabase → Connect |
+| `DB_PASSWORD` | Privado | Contraseña de la BD | canal privado |
+| `SUPABASE_DB_URL` | Privado | URI para ejecutar la semilla | Supabase → Connect |
+| `JWT_SECRET` | Privado | Clave para firmar tokens | `openssl rand -hex 32` |
+| `EDUFAST_DEMO_EMAIL_DOMAIN` | Compartido | Dominio de correos demo | `example.test` |
+| `EDUFAST_DEMO_PASSWORD` | Compartido | Contraseña de las cuentas demo | `demo123` |
+| `EDUFAST_DEMO_STUDENTS_PER_SECTION` | Compartido | Alumnos por sección en la semilla | `10` |
+| `EDUFAST_DEMO_SIBLING_PAIRS` | Compartido | Pares de hermanos en la semilla | `10` |
 
-Para el Supabase compartido, completa `backend/.env` con los valores de conexión del proyecto y expórtalos antes de iniciar el backend:
+Inicia el backend con las variables exportadas:
 
 ```bash
-cp backend/.env.example backend/.env
-set -a
-source backend/.env
-set +a
+set -a && source backend/.env && set +a
 cd backend && ./gradlew bootRun
 ```
 
-`backend/.env` está excluido de Git. Cada colaborador necesita acceso al proyecto Supabase de desarrollo y recibe sus credenciales por un canal privado; el `clone` del repositorio no concede acceso al proyecto. Mantén producción en un proyecto separado y no cargues allí la semilla demo.
+`backend/.env` está excluido de Git. Los valores privados se comparten por un canal seguro; el `clone` del repositorio no concede acceso a Supabase. Mantén producción en un proyecto separado y no cargues allí la semilla demo.
 
 ### 1. Backend (Java + Spring Boot)
 ```bash
@@ -216,16 +226,21 @@ npm run dev
 - Web: `http://localhost:5173` (el proxy reenvía `/api` al backend)
 
 ### 3. Móvil (Kotlin + Android)
-Requiere **Android Studio**. Abrir la carpeta `mobile/`, sincronizar Gradle y correr en un emulador. La app se conecta a `http://10.0.2.2:8080`.
+Requiere **Android Studio** y **JDK 21** para compilar. Abrir la carpeta `mobile/`, sincronizar Gradle y correr en un emulador.
+
+- La URL de la API vive en `BuildConfig.API_BASE_URL` (no está en el código). En debug apunta a `http://10.0.2.2:8080`; se puede sobreescribir con la propiedad Gradle `edufast.debugApiBaseUrl`. Para release, define `edufast.apiBaseUrl`.
+- El HTTP en claro al backend local solo se habilita en debug (`mobile/app/src/debug/AndroidManifest.xml`); release no lo incluye.
 
 ### Datos de prueba
 ```
-Personal demo: personal.docente.regular@<EDUFAST_DEMO_EMAIL_DOMAIN>
-               personal.docente.auxiliar@<EDUFAST_DEMO_EMAIL_DOMAIN>
-               personal.director.primaria@<EDUFAST_DEMO_EMAIL_DOMAIN>
-               personal.director.general@<EDUFAST_DEMO_EMAIL_DOMAIN>
-               personal.secretaria@<EDUFAST_DEMO_EMAIL_DOMAIN>
-Apoderados: generados por familia a partir de los códigos sintéticos de estudiantes
-Contraseña: el valor local de EDUFAST_DEMO_PASSWORD
+Dominio:     example.test
+Contraseña:  demo123
+
+Personal:    personal.docente.regular@example.test
+             personal.docente.auxiliar@example.test
+             personal.director.primaria@example.test
+             personal.director.general@example.test
+             personal.secretaria@example.test
+Apoderados:  apoderado.hermanos.0001@example.test (y los generados por familia)
 ```
-Los datos sintéticos los genera `supabase/seed.sql` solo en desarrollo. Revisa `backend/.env.example` para los parámetros configurables.
+El docente regular está asignado a **4.º de primaria - A**. Los datos sintéticos los genera `supabase/seed.sql` solo en desarrollo. Revisa `backend/.env.example` para los parámetros configurables.
