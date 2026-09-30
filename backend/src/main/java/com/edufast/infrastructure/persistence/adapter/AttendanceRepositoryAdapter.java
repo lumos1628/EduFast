@@ -59,7 +59,7 @@ public class AttendanceRepositoryAdapter implements AttendanceRepository {
                     .map(AttendanceMapper::toDomain)
                     .toList();
             return new Jornada(jornada.getId(), sectionId, date,
-                    EstadoJornada.valueOf(jornada.getEstado()), registrosJornada);
+                    EstadoJornada.fromPersisted(jornada.getEstado()), registrosJornada);
         });
     }
 
