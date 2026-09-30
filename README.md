@@ -143,6 +143,10 @@ eduFast/
 CREATE ROLE edufast WITH LOGIN PASSWORD 'edufast123' BYPASSRLS;
 CREATE DATABASE edufast OWNER edufast;
 ```
+Si el rol `edufast` ya existía con otra contraseña, alínealo en vez de crearlo:
+```sql
+ALTER ROLE edufast WITH LOGIN PASSWORD 'edufast123' BYPASSRLS;
+```
 Aplica migraciones y semilla sobre esa base:
 ```bash
 psql -d edufast -f supabase/migrations/20260928000100_base_escolar.sql

@@ -40,6 +40,8 @@ La base de datos se crea una sola vez:
 ```sql
 CREATE ROLE edufast WITH LOGIN PASSWORD 'edufast123' BYPASSRLS;
 CREATE DATABASE edufast OWNER edufast;
+-- Si el rol ya existe con otra contraseña, alinéalo:
+-- ALTER ROLE edufast WITH LOGIN PASSWORD 'edufast123' BYPASSRLS;
 ```
 Las tablas las crean las migraciones de `supabase/migrations/`; no uses `ddl-auto=update`.
 

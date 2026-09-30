@@ -79,7 +79,10 @@ export async function login(email: string, password: string): Promise<LoginRespo
   } catch {
     throw new NetworkError()
   }
-  if (!res.ok) throw new Error('Credenciales inválidas')
+  // Solo un 401 significa credenciales inválidas; un 5xx (o el proxy si el
+  // backend está caído) es un problema de servidor, no de credenciales.
+  if (res.status === 401) throw new Error('Credenciales inválidas')
+  if (!res.ok) throw new NetworkError()
   const data = (await res.json()) as LoginResponse
   localStorage.setItem('edufast_token', data.token)
   localStorage.setItem('edufast_name', data.name)
