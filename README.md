@@ -125,9 +125,12 @@ eduFast/
 
 ### Configuración para colaboradores
 
-1. Copia la plantilla y exporta las variables:
+1. Copia la plantilla y completa los valores privados:
    ```bash
    cp backend/.env.example backend/.env
+   ```
+   Gradle carga `backend/.env` solo para `./gradlew test` y `./gradlew bootRun`; no hace falta exportarlo a mano. Si vas a ejecutar comandos `psql` o `supabase` CLI, expórtalo tú:
+   ```bash
    set -a && source backend/.env && set +a
    ```
 2. La plantilla ya trae los **valores compartidos de desarrollo** (`EDUFAST_DEMO_EMAIL_DOMAIN=example.test`, `EDUFAST_DEMO_PASSWORD=demo123`). Solo debes completar los campos **privados** en `backend/.env`:
@@ -199,10 +202,9 @@ psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/seed.sql
 | `EDUFAST_DEMO_STUDENTS_PER_SECTION` | Compartido | Alumnos por sección en la semilla | `10` |
 | `EDUFAST_DEMO_SIBLING_PAIRS` | Compartido | Pares de hermanos en la semilla | `10` |
 
-Inicia el backend con las variables exportadas:
+Inicia el backend (Gradle carga `backend/.env` automáticamente):
 
 ```bash
-set -a && source backend/.env && set +a
 cd backend && ./gradlew bootRun
 ```
 

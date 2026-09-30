@@ -23,9 +23,10 @@ Monorepo con 3 piezas que se comunican por HTTP + JSON:
 
 ```bash
 # Backend: correr tests (OBLIGATORIO antes de dar trabajo por terminado)
+# Gradle carga backend/.env solo; no hace falta exportarlo a mano.
 cd backend && ./gradlew test
 
-# Backend: levantar la API (requiere PostgreSQL en localhost:5432)
+# Backend: levantar la API
 cd backend && ./gradlew bootRun
 
 # Web: lint + build (OBLIGATORIO si tocaste web/)
@@ -41,6 +42,8 @@ CREATE ROLE edufast WITH LOGIN PASSWORD 'edufast123' BYPASSRLS;
 CREATE DATABASE edufast OWNER edufast;
 ```
 Las tablas las crean las migraciones de `supabase/migrations/`; no uses `ddl-auto=update`.
+
+`./gradlew test` y `./gradlew bootRun` necesitan credenciales de PostgreSQL. Crea `backend/.env` desde `backend/.env.example` y pide los valores privados de Supabase (`DB_URL`, `DB_USER`, `DB_PASSWORD`) al equipo por un canal seguro: clonar el repo no da acceso a la base. Gradle carga ese `.env` automáticamente. Sin él, los tests de arquitectura y de servicio pasan, pero `contextLoads` falla al no conectar.
 
 ---
 
