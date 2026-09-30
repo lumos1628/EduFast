@@ -8,6 +8,8 @@ import java.time.LocalDate;
 @Table(name = "asignaciones_docentes")
 public class AsignacionDocenteEntity {
 
+    private static final String FUNCION_DOCENTE = "DOCENTE";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -24,7 +26,7 @@ public class AsignacionDocenteEntity {
     private boolean esTutor;
 
     @Column(name = "funcion", nullable = false)
-    private String funcion = "DOCENTE";
+    private String funcion = FUNCION_DOCENTE;
 
     @Column(name = "vigente_desde", nullable = false)
     private LocalDate vigenteDesde;

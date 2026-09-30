@@ -2,6 +2,10 @@
 
 const BASE = '/api/v1'
 
+// Evento que avisa a la UI (App.tsx) que la sesión dejó de ser válida.
+// La capa de servicios no manipula el DOM: solo notifica.
+export const SESSION_EXPIRED_EVENT = 'edufast:session-expired'
+
 // El backend no respondió (servidor apagado, sin red, CORS...). Se distingue
 // de un 401 para que la UI no confunda un problema de red con credenciales.
 export class NetworkError extends Error {
@@ -20,11 +24,11 @@ function authHeaders(): Record<string, string> {
 }
 
 // Si el backend responde 401 (token vencido o inválido), la sesión ya no sirve:
-// se limpia y se vuelve al login en vez de mostrar errores genéricos.
+// se limpia y se notifica para que la UI vuelva al login.
 function handleUnauthorized(res: Response): void {
   if (res.status === 401) {
     logout()
-    window.location.reload()
+    window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
   }
 }
 
