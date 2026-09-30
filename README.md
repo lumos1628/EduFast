@@ -133,10 +133,13 @@ eduFast/
    ```bash
    set -a && source backend/.env && set +a
    ```
-2. La plantilla ya trae los **valores compartidos de desarrollo** (`EDUFAST_DEMO_EMAIL_DOMAIN=example.test`, `EDUFAST_DEMO_PASSWORD=demo123`). Solo debes completar los campos **privados** en `backend/.env`:
-   - `DB_URL`, `DB_USER`, `DB_PASSWORD`, `SUPABASE_DB_URL`: credenciales del Supabase de desarrollo, que se comparten por un canal privado. El `clone` del repositorio **no** concede acceso al proyecto.
+2. El backend ya apunta por defecto al **Supabase de desarrollo** (el host y el usuario no son secretos y viven en `application.properties`). La plantilla trae los **valores compartidos** (`EDUFAST_DEMO_EMAIL_DOMAIN=example.test`, `EDUFAST_DEMO_PASSWORD=demo123`). Solo debes completar los campos **privados** en `backend/.env`:
+   - `DB_PASSWORD`: contraseña del Supabase de desarrollo, que se comparte por un canal privado. El `clone` del repositorio **no** concede acceso al proyecto.
+   - `SUPABASE_DB_URL`: URI para `psql` (supabase/seed.sql), también privada.
    - `JWT_SECRET`: genera uno propio con `openssl rand -hex 32`.
 3. No re-ejecutes la semilla en la base compartida sin acordarlo, porque cambiaría los datos para todo el equipo.
+
+> Para trabajar contra un **Postgres local**, define `DB_URL`, `DB_USER` y `DB_PASSWORD` en `backend/.env`; esos valores ganan sobre el default de Supabase.
 
 ### Base de datos local (desarrollo)
 ```sql
@@ -196,9 +199,9 @@ psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/seed.sql
 
 | Variable | Tipo | Qué es | Valor |
 |---|---|---|---|
-| `DB_URL` | Privado | URL JDBC de PostgreSQL | Supabase → Connect, formato `jdbc:postgresql://...:5432/postgres` |
-| `DB_USER` | Privado | Usuario de la BD | Supabase → Connect |
-| `DB_PASSWORD` | Privado | Contraseña de la BD | canal privado |
+| `DB_URL` | Default en repo | URL JDBC de PostgreSQL | Supabase dev; override en `backend/.env` para local |
+| `DB_USER` | Default en repo | Usuario de la BD | `edufast`; override en `backend/.env` para local |
+| `DB_PASSWORD` | Privado | Contraseña de la BD | canal privado (obligatoria) |
 | `SUPABASE_DB_URL` | Privado | URI para ejecutar la semilla | Supabase → Connect |
 | `JWT_SECRET` | Privado | Clave para firmar tokens | `openssl rand -hex 32` |
 | `EDUFAST_DEMO_EMAIL_DOMAIN` | Compartido | Dominio de correos demo | `example.test` |
