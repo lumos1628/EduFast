@@ -29,5 +29,6 @@ mobile/.gradle/
 # Supabase CLI state local (includes project-link metadata)
 supabase/.temp/
 
-# Encuestas con datos personales de docentes (evidencia de investigación, no va al repo)
+# Encuestas y documentos locales (evidencia de investigación, no va al repo)
 *.xlsx
+*.docx
